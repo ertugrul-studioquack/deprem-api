@@ -10,6 +10,40 @@ let lastSyncStatus = {
   error: null
 };
 
+// Eski kayıtlar varsa geo alanını geriye dönük tamamla
+async function migrateMissingGeo() {
+  try {
+    const missingDocs = await Earthquake.find({
+      $or: [
+        { geo: { $exists: false } },
+        { 'geo.coordinates': { $size: 0 } },
+        { 'geo.coordinates': [0, 0] }
+      ]
+    }).limit(500);
+
+    if (missingDocs.length > 0) {
+      console.log(`[MIGRATION] ${missingDocs.length} adet eski kaydın koordinatları (geo) güncelleniyor...`);
+      const ops = missingDocs.map(doc => ({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: {
+            $set: {
+              geo: {
+                type: 'Point',
+                coordinates: [Number(doc.longitude) || 0, Number(doc.latitude) || 0]
+              }
+            }
+          }
+        }
+      }));
+      await Earthquake.bulkWrite(ops);
+      console.log('[MIGRATION] Koordinat güncellemesi tamamlandı.');
+    }
+  } catch (err) {
+    console.error('[MIGRATION] Geo migrasyon hatası:', err.message);
+  }
+}
+
 async function syncEarthquakes(count = 45) {
   const startTime = new Date();
   console.log(`\n[SYNC] AFAD senkronizasyonu başlatıldı (${startTime.toLocaleTimeString('tr-TR')}, Hedef: ${count} kayıt)...`);
@@ -36,12 +70,16 @@ async function syncEarthquakes(count = 45) {
           $setOnInsert: {
             id: item.id,
             eventDate: new Date(item.eventDate),
-            magnitude: item.magnitude,
-            magnitudeType: item.magnitudeType,
-            depth: item.depth,
-            location: item.location,
-            latitude: item.latitude,
-            longitude: item.longitude,
+            magnitude: Number(item.magnitude) || 0,
+            magnitudeType: item.magnitudeType || '',
+            depth: Number(item.depth) || 0,
+            location: item.location || '',
+            latitude: Number(item.latitude) || 0,
+            longitude: Number(item.longitude) || 0,
+            geo: {
+              type: 'Point',
+              coordinates: [Number(item.longitude) || 0, Number(item.latitude) || 0]
+            },
             eaeventId: item.eaeventId,
             raw: item
           }
@@ -50,7 +88,6 @@ async function syncEarthquakes(count = 45) {
       }
     }));
 
-    // ordered: false ile bir hata olsa bile diğerleri kaydedilir
     const result = await Earthquake.bulkWrite(operations, { ordered: false });
 
     const insertedCount = result.upsertedCount || 0;
@@ -88,4 +125,4 @@ function getLastSyncStatus() {
   return lastSyncStatus;
 }
 
-module.exports = { syncEarthquakes, getLastSyncStatus };
+module.exports = { syncEarthquakes, getLastSyncStatus, migrateMissingGeo };

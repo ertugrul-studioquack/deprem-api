@@ -15,7 +15,8 @@ const earthquakeSchema = new mongoose.Schema(
     },
     magnitude: {
       type: Number,
-      default: 0
+      default: 0,
+      index: true
     },
     magnitudeType: {
       type: String,
@@ -27,7 +28,8 @@ const earthquakeSchema = new mongoose.Schema(
     },
     location: {
       type: String,
-      default: ''
+      default: '',
+      index: true
     },
     latitude: {
       type: Number,
@@ -36,6 +38,17 @@ const earthquakeSchema = new mongoose.Schema(
     longitude: {
       type: Number,
       default: 0
+    },
+    geo: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point'
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0]
+      }
     },
     eaeventId: {
       type: Number
@@ -49,7 +62,8 @@ const earthquakeSchema = new mongoose.Schema(
   }
 );
 
-// Son depremleri tarihe göre sıralı getirmek için bileşik indeks
+// İndeksler
 earthquakeSchema.index({ eventDate: -1 });
+earthquakeSchema.index({ geo: '2dsphere' });
 
 module.exports = mongoose.model('Earthquake', earthquakeSchema);
