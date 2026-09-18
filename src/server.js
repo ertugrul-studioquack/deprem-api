@@ -15,6 +15,25 @@ app.use(express.json());
 // API Rotaları
 app.use('/api/earthquakes', earthquakeRoutes);
 
+// Kandilli Rasathanesi Canlı Parse API'si
+const { fetchKandilliEarthquakes } = require('./services/kandilliService');
+app.get('/api/kandilli', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit || '50', 10);
+    const city = req.query.city;
+    const minMag = req.query.minMag;
+    const data = await fetchKandilliEarthquakes({ limit, city, minMag });
+    res.json({
+      success: true,
+      source: 'Boğaziçi Üniversitesi Kandilli Rasathanesi (KRDAE)',
+      count: data.length,
+      data
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Manuel senkronizasyon tetikleme ucu
 app.post('/api/sync', async (req, res) => {
   try {
@@ -167,6 +186,7 @@ app.get('/', async (req, res) => {
       <a class="api-badge" href="/api/earthquakes/nearby?lat=38.4&lng=27.1&radiusKm=100" target="_blank">/nearby?lat=38.4&lng=27.1</a>
       <a class="api-badge" href="/api/earthquakes/cities" target="_blank">/cities</a>
       <a class="api-badge" href="/api/earthquakes/stats" target="_blank">/stats</a>
+      <a class="api-badge" style="background:#fef3c7; color:#92400e;" href="/api/kandilli?limit=20" target="_blank">Kandilli API (/api/kandilli)</a>
     </div>
 
     <div class="table-card">

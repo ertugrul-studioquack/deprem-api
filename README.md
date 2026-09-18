@@ -187,6 +187,21 @@ curl "http://localhost:3000/api/earthquakes/stats"
 curl "http://localhost:3000/api/earthquakes/593697"
 ```
 
+### 6. Kandilli Rasathanesi Canlı Parse API'si (`GET /api/kandilli`)
+
+Boğaziçi Üniversitesi Kandilli Rasathanesi'nin `http://www.koeri.boun.edu.tr/scripts/lst0.asp` sayfasındaki son 500 depremi anlık çeker, `windows-1254` karakter kodlamasını çözer ve JSON olarak döner:
+
+```bash
+# Son 20 Kandilli depremi
+curl "http://localhost:3000/api/kandilli?limit=20"
+
+# Kütahya'daki son depremler
+curl "http://localhost:3000/api/kandilli?city=Kutahya&limit=5"
+
+# Büyüklüğü 3.0 ve üzeri olanlar
+curl "http://localhost:3000/api/kandilli?minMag=3.0"
+```
+
 ---
 
 ## Çevre Değişkenleri (.env)
